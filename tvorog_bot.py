@@ -1,5 +1,6 @@
 import telebot
 import time
+import emoji
 
 from config import app_token, telegram_token, socks_string
 from profile_api import *
@@ -31,17 +32,17 @@ def find_telegram_by_id(id):
 
 def get_history(token):
     history = get_history_by_token(token)
-    text = "История начислений:\n\n"
+    text = ":clipboard: История начислений:\n\n"
 
     if len(history) == 0:
-        text += "Начислений пока нет."
+        text += ":x: Начислений пока нет."
 
     for record in history[::-1]:
         name = record["userFrom"]['firstName'] + " " + record["userFrom"]['lastName']
         comment = record["comment"]
         count = record["count"]
 
-        text = text + "{} ({}, {})\n".format(count, comment, name)
+        text = text + ":dollar: {} ({}, {})\n".format(count, comment, name)
 
     return text
 
@@ -111,10 +112,10 @@ def process_money(message):
         if money == 0 or abs(money) > 1000:
             raise Exception("overlimit")
         temp_storage[message.chat.id]['money'] = money
-        answer = bot.send_message(message.chat.id, text='За что начисляем GT?')
+        answer = bot.send_message(message.chat.id, text=emoji.emojize(':bar_chart: За что начисляем GT?', use_aliases=True))
         bot.register_next_step_handler(answer, process_comment)
     except Exception as e:
-        answer = bot.send_message(message.chat.id, text='Окей, отмена.', reply_markup=keyboard)
+        answer = bot.send_message(message.chat.id, text=emoji.emojize(':confused: Окей, отмена.',  use_aliases=True), reply_markup=keyboard)
         bot.register_next_step_handler(answer, process_command)
 
 def process_comment(message):
@@ -130,20 +131,20 @@ def process_comment(message):
         id = temp_storage[message.chat.id]['id']
         money = temp_storage[message.chat.id]['money']
         name = get_name_by_id(id)
-        bot.send_message(message.chat.id, text='Начисляем {} GT для {} за "{}"?'.format(money, name, comment), reply_markup=get_confirm_keyboard())
+        bot.send_message(message.chat.id, text=emoji.emojize(':customs: Начисляем {} GT для {} за "{}"?'.format(money, name, comment), use_aliases=True), reply_markup=get_confirm_keyboard())
     except Exception as e:
-        answer = bot.send_message(message.chat.id, text='Что-то пошло не по плану :(.', reply_markup=keyboard)
+        answer = bot.send_message(message.chat.id, text='Что-то пошло не по плану - опять все перепутали :(.', reply_markup=keyboard)
         bot.register_next_step_handler(answer, process_command)
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.send_message(message.chat.id, text='Привет! Я помогу провести операции с GoToCoins!')
+    bot.send_message(message.chat.id, text=emoji.emojize(':boar: Привет! Я помогу провести операции с GoToCoins! Секундочку...', use_aliases=True))
     user_token = get_token(message)
     id = get_id_by_token(user_token)
     if user_token:
         add_telegram_to_base(id, message.chat.id)
         keyboard = get_keyboard(get_permissions_by_token(user_token))
-        answer = bot.send_message(message.chat.id, text='Я готов к работе. В любой непонятной ситуации жми /start.', reply_markup=keyboard)
+        answer = bot.send_message(message.chat.id, text=emoji.emojize(':thumbsup: Я готов к работе. В любой непонятной ситуации жми /start.', use_aliases=True), reply_markup=keyboard)
         bot.register_next_step_handler(answer, process_command)
 
 
@@ -154,15 +155,15 @@ def process_command(message):
         keyboard = get_keyboard(is_admin)
         if message.text == 'Узнать баланс':
             balance = get_balance_by_token(user_token)
-            text = 'Ваш баланс: {0} GT \n\n'.format(balance) + get_history(user_token)
+            text = emoji.emojize(':moneybag: Ваш баланс: {0} GT \n\n'.format(balance) + get_history(user_token), use_aliases=True)
             answer = bot.send_message(message.chat.id, text=text, reply_markup=keyboard)
             bot.register_next_step_handler(answer, process_command)
         elif message.text == 'Начислить' and is_admin:
-            bot.send_message(message.chat.id, text='Начисляем GT.', reply_markup=telebot.types.ReplyKeyboardRemove())
+            bot.send_message(message.chat.id, text=emoji.emojize(':money_with_wings: Начисляем GT.', use_aliases=True), reply_markup=telebot.types.ReplyKeyboardRemove())
             process_add_command(message)
             #bot.register_next_step_handler()
         else:
-            answer = bot.send_message(message.chat.id, text='Я тебя не понял :(', reply_markup=keyboard)
+            answer = bot.send_message(message.chat.id, text=emoji.emojize(':worried: Я тебя не понял :(', use_aliases=True), reply_markup=keyboard)
             bot.register_next_step_handler(answer, process_command)
 
 def process_add_command(message):
@@ -173,11 +174,11 @@ def process_add_command(message):
             text = ''
         if message.chat.id in answer_cache:
             bot.edit_message_text(chat_id=message.chat.id, message_id=answer_cache[message.chat.id],
-                                      text='Ищем участника...')
+                                      text=emoji.emojize(':eyes: Ищем участника...', use_aliases=True))
         students = get_students_by_token(user_token)
         students = filter(lambda x: text.lower() in (x['user']['firstName'] + " " + x['user']['lastName']).lower(), students)
         keyboard = get_add_keyboard(students)
-        answer = bot.send_message(message.chat.id, text='Выберите участника или начните вводить его имя: ', reply_markup=keyboard)
+        answer = bot.send_message(message.chat.id, text=emoji.emojize(':runner: Выберите участника или начните вводить его имя: ', use_aliases=True), reply_markup=keyboard)
         bot.register_next_step_handler(answer, process_add_command)
         answer_cache[message.chat.id] = answer.message_id
 
@@ -189,7 +190,7 @@ def callback_inline(call):
                 id = call.data.split('_')[1]
                 temp_storage[call.message.chat.id] = {}
                 temp_storage[call.message.chat.id]['id'] = id
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Укажите, сколько GT нужно начислить или введите 0 для отмены.")
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(":credit_card: Укажите, сколько GT нужно начислить или введите 0 для отмены.", use_aliases=True))
                 bot.clear_step_handler(call.message)
                 bot.register_next_step_handler(call.message, process_money)
             elif call.data == "yes":
@@ -202,11 +203,11 @@ def callback_inline(call):
 
                 submit_gotocoins(user_token, id, money, comment)
 
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='GT начислены. Спасибо!')
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(':thumbsup: GT начислены. Спасибо!', use_aliases=True))
                 try:
                     student_id = find_telegram_by_id(id)
                     if student_id:
-                        bot.send_message(student_id, 'Вам начислено {} GT за "{}".'.format(money, comment))
+                        bot.send_message(student_id, emoji.emojize(':metal: Вам начислено {} GT за "{}".'.format(money, comment), use_aliases=True))
                 except:
                     pass
                 answer = bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=keyboard)
@@ -217,7 +218,7 @@ def callback_inline(call):
                 is_admin = get_permissions_by_token(user_token)
                 keyboard = get_keyboard(is_admin)
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      text='Нет, так нет. Отменяем.')
+                                      text=emoji.emojize(':confused: Нет, так нет. Отменяем.', use_aliases=True))
                 answer = bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=keyboard)
                 temp_storage[call.message.chat.id]['comment'] = {}
                 bot.register_next_step_handler(answer, process_command)
