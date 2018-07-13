@@ -1,10 +1,12 @@
 import telebot
 import time
 
-from config import app_token, telegram_token
+from config import app_token, telegram_token, socks_string
 from profile_api import *
 import os.path
 
+
+telebot.apihelper.proxy = {'https': socks_string}
 
 if (not os.path.isfile('base.json')):
     with open('base.json', 'w') as f:
@@ -14,8 +16,8 @@ bot = telebot.TeleBot(telegram_token)
 bot.remove_webhook()
 
 
-
 temp_storage = {}
+answer_cache = {}
 
 def find_telegram_by_id(id):
     try:
@@ -156,16 +158,28 @@ def process_command(message):
             answer = bot.send_message(message.chat.id, text=text, reply_markup=keyboard)
             bot.register_next_step_handler(answer, process_command)
         elif message.text == 'Начислить' and is_admin:
-            students = get_students_by_token(user_token)
-            keyboard = get_add_keyboard(students)
             bot.send_message(message.chat.id, text='Начисляем GT.', reply_markup=telebot.types.ReplyKeyboardRemove())
-            bot.send_message(message.chat.id, text='Выберите участника: ', reply_markup=keyboard)
+            process_add_command(message)
             #bot.register_next_step_handler()
         else:
             answer = bot.send_message(message.chat.id, text='Я тебя не понял :(', reply_markup=keyboard)
             bot.register_next_step_handler(answer, process_command)
 
-
+def process_add_command(message):
+    user_token = get_token(message)
+    if user_token:
+        text = message.text
+        if message.text == 'Начислить':
+            text = ''
+        if message.chat.id in answer_cache:
+            bot.edit_message_text(chat_id=message.chat.id, message_id=answer_cache[message.chat.id],
+                                      text='Ищем участника...')
+        students = get_students_by_token(user_token)
+        students = filter(lambda x: text.lower() in (x['user']['firstName'] + " " + x['user']['lastName']).lower(), students)
+        keyboard = get_add_keyboard(students)
+        answer = bot.send_message(message.chat.id, text='Выберите участника или начните вводить его имя: ', reply_markup=keyboard)
+        bot.register_next_step_handler(answer, process_add_command)
+        answer_cache[message.chat.id] = answer.message_id
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
@@ -176,6 +190,7 @@ def callback_inline(call):
                 temp_storage[call.message.chat.id] = {}
                 temp_storage[call.message.chat.id]['id'] = id
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Укажите, сколько GT нужно начислить или введите 0 для отмены.")
+                bot.clear_step_handler(call.message)
                 bot.register_next_step_handler(call.message, process_money)
             elif call.data == "yes":
                 comment = temp_storage[call.message.chat.id]['comment']
@@ -201,7 +216,9 @@ def callback_inline(call):
                 user_token = temp_storage[call.message.chat.id]['token']
                 is_admin = get_permissions_by_token(user_token)
                 keyboard = get_keyboard(is_admin)
-                answer = bot.send_message(call.message.chat.id, text='Нет, так нет. Отменяем.', reply_markup=keyboard)
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      text='Нет, так нет. Отменяем.')
+                answer = bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=keyboard)
                 temp_storage[call.message.chat.id]['comment'] = {}
                 bot.register_next_step_handler(answer, process_command)
             else:
