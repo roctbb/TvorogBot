@@ -43,8 +43,6 @@ def get_history(token):
 
     return text
 
-
-
 def add_telegram_to_base(id, telegram_id):
     try:
         with open('base.json') as file:
@@ -62,7 +60,12 @@ def get_token(message):
     else:
         user_token = get_token_by_telegram(username)
         if not user_token:
-            bot.send_message(message.chat.id, text='Не могу найти тебя на profile.goto.msk.ru :( Проверь, что ты указал никнейм в профиле и снова набери /start.')
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            url = "https://profile.goto.msk.ru/workspace/settings"
+            url_button = telebot.types.InlineKeyboardButton(text="Перейти в настройки", url=url)
+            keyboard.add(url_button)
+            bot.send_message(message.chat.id, text='Не могу найти тебя на profile.goto.msk.ru :(', reply_markup=telebot.types.ReplyKeyboardRemove())
+            bot.send_message(message.chat.id, 'Проверь, что ты указал никнейм в профиле и снова набери /start.', reply_markup=keyboard)
         else:
             return user_token
     return None
@@ -135,13 +138,11 @@ def send_welcome(message):
     bot.send_message(message.chat.id, text='Привет! Я помогу провести операции с GoToCoins!')
     user_token = get_token(message)
     id = get_id_by_token(user_token)
-    if user_token and id:
+    if user_token:
         add_telegram_to_base(id, message.chat.id)
         keyboard = get_keyboard(get_permissions_by_token(user_token))
-        answer = bot.send_message(message.chat.id, text='Я готов к работе. В любой непотнятной ситуации жми /start.', reply_markup=keyboard)
+        answer = bot.send_message(message.chat.id, text='Я готов к работе. В любой непонятной ситуации жми /start.', reply_markup=keyboard)
         bot.register_next_step_handler(answer, process_command)
-    else:
-        bot.send_message(message.chat.id, text='Что-то пошло не так. Попробуйте нажать /start через несколько минут.')
 
 
 def process_command(message):
@@ -213,6 +214,7 @@ def callback_inline(call):
 while True:
     try:
         bot.polling(none_stop=True)
-    except:
+    except Exception as e:
+        print(e)
         pass
     time.sleep(5)

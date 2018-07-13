@@ -1,7 +1,7 @@
 import requests, json
 from config import app_token, master_token
 
-DEBUG = False
+DEBUG = True
 
 def send_query(data, url = 'https://profile.goto.msk.ru/graphql'):
     try:
