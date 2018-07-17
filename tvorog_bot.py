@@ -170,8 +170,10 @@ def process_add_command(message):
     user_token = get_token(message)
     if user_token:
         text = message.text
+        '''
         if message.text == 'Начислить':
             text = ''
+        '''
         if message.chat.id in answer_cache:
             bot.edit_message_text(chat_id=message.chat.id, message_id=answer_cache[message.chat.id],
                                       text=emoji.emojize(':eyes: Ищем участника...', use_aliases=True))
