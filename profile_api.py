@@ -165,8 +165,7 @@ def get_history_by_token(token):
 def get_students_by_token(token):
     data = '''
         {
-          getRelatedFormAnswers(token: "%s", eventId: "RXZlbnROb2RlOjE=")) {
-            name
+          getRelatedFormAnswers(token: "%s", eventId: "RXZlbnROb2RlOjE=") {
             user {
               profileId
               firstName
@@ -186,10 +185,12 @@ def get_students_by_token(token):
 if __name__ == "__main__":
     DEBUG = True
     token = get_token_by_telegram("roctbb")
+    '''
     print(get_balance_by_token(token))
     print(get_permissions_by_token(token))
     print(get_students_by_token(token))
     print(get_name_by_id(102))
     print(get_id_by_token(token))
-    print(submit_gotocoins(master_token, 102, 2, 'test'))
+    '''
+    print(submit_gotocoins(master_token, 102, 100, 'test'))
     print(get_history_by_token(token))

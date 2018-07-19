@@ -82,7 +82,7 @@ def get_keyboard(is_admin = False):
         add_button = telebot.types.KeyboardButton(text="Начислить")
         keyboard.add(add_button)
     keyboard.add(balance_button)
-    # keyboard.add(shop_button)
+    keyboard.add(shop_button)
     return keyboard
 
 def get_add_keyboard(students):
@@ -104,6 +104,9 @@ def get_shop_keyboard():
         id = good['id']
         button = telebot.types.InlineKeyboardButton(text="{} ({} GT)".format(name, price), callback_data="buy_{0}".format(id))
         keyboard.add(button)
+    button = telebot.types.InlineKeyboardButton(text="Я просто смотрю...",
+                                                callback_data="cancel")
+    keyboard.add(button)
     return keyboard
 
 def get_confirm_keyboard():
@@ -173,7 +176,7 @@ def process_command(message):
             bot.register_next_step_handler(answer, process_command)
         elif message.text == 'Начислить' and is_admin:
             bot.send_message(message.chat.id, text=emoji.emojize(':money_with_wings: Начисляем GT.', use_aliases=True), reply_markup=telebot.types.ReplyKeyboardRemove())
-            process_add_command(message, user_token)
+            process_add_command(message)
             #bot.register_next_step_handler()
         elif message.text == 'Магазин':
             process_shop_command(message, user_token)
@@ -181,7 +184,8 @@ def process_command(message):
             answer = bot.send_message(message.chat.id, text=emoji.emojize(':worried: Я тебя не понял :(', use_aliases=True), reply_markup=keyboard)
             bot.register_next_step_handler(answer, process_command)
 
-def process_add_command(message, user_token):
+def process_add_command(message):
+    user_token = get_token(message)
     if user_token:
         text = message.text
         '''
@@ -202,7 +206,7 @@ def process_shop_command(message, user_token):
     if user_token:
         keyboard = get_shop_keyboard()
         shop_storage[message.chat.id] = user_token
-        bot.send_message(message.chat.id, text=emoji.emojize('Что покупаем?', use_aliases=True), reply_markup=keyboard)
+        bot.send_message(message.chat.id, text=emoji.emojize(':raising_hand: Что покупаем?', use_aliases=True), reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
@@ -224,9 +228,21 @@ def callback_inline(call):
                 keyboard = get_keyboard(is_admin)
                 shop_storage[call.message.chat.id] = None
                 if make_buy(user_token, item):
-                    answer = bot.send_message(call.message.chat.id, 'Платеж прошел, ожидайте доставку!',  reply_markup=keyboard)
+                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                          text=emoji.emojize(':white_check_mark: Платеж прошел, ожидайте доставку!', use_aliases=True))
                 else:
-                    answer = bot.send_message(call.message.chat.id, 'Недостаточно средств или товар закончился.',  reply_markup=keyboard)
+                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(':cry: Недостаточно средств или товар закончился.', use_aliases=True),  reply_markup=keyboard)
+                answer = bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=keyboard)
+                bot.register_next_step_handler(answer, process_command)
+            elif call.data.startswith("cancel"):
+                user_token = shop_storage[call.message.chat.id]
+                if not user_token:
+                    raise Exception("no token")
+                is_admin = get_permissions_by_token(user_token)
+                keyboard = get_keyboard(is_admin)
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      text=emoji.emojize(':new_moon_with_face: Нет, так нет.', use_aliases=True))
+                answer = bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=keyboard)
                 bot.register_next_step_handler(answer, process_command)
 
 
