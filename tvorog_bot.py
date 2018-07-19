@@ -16,7 +16,7 @@ if (not os.path.isfile('base.json')):
 bot = telebot.TeleBot(telegram_token)
 bot.remove_webhook()
 
-
+shop_storage = {}
 temp_storage = {}
 answer_cache = {}
 
@@ -77,10 +77,12 @@ def get_token(message):
 def get_keyboard(is_admin = False):
     keyboard = telebot.types.ReplyKeyboardMarkup()
     balance_button = telebot.types.KeyboardButton(text="Узнать баланс")
+    shop_button = telebot.types.KeyboardButton(text="Магазин")
     if is_admin:
         add_button = telebot.types.KeyboardButton(text="Начислить")
         keyboard.add(add_button)
     keyboard.add(balance_button)
+    # keyboard.add(shop_button)
     return keyboard
 
 def get_add_keyboard(students):
@@ -91,6 +93,17 @@ def get_add_keyboard(students):
         id = student['user']['profileId']
         student_button = telebot.types.InlineKeyboardButton(text="{} ({} GT)".format(name, balance), callback_data="add_{0}".format(id))
         keyboard.add(student_button)
+    return keyboard
+
+def get_shop_keyboard():
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    goods = get_goods()
+    for good in goods:
+        name = good['title']
+        price = good['price']
+        id = good['id']
+        button = telebot.types.InlineKeyboardButton(text="{} ({} GT)".format(name, price), callback_data="buy_{0}".format(id))
+        keyboard.add(button)
     return keyboard
 
 def get_confirm_keyboard():
@@ -160,14 +173,15 @@ def process_command(message):
             bot.register_next_step_handler(answer, process_command)
         elif message.text == 'Начислить' and is_admin:
             bot.send_message(message.chat.id, text=emoji.emojize(':money_with_wings: Начисляем GT.', use_aliases=True), reply_markup=telebot.types.ReplyKeyboardRemove())
-            process_add_command(message)
+            process_add_command(message, user_token)
             #bot.register_next_step_handler()
+        elif message.text == 'Магазин':
+            process_shop_command(message, user_token)
         else:
             answer = bot.send_message(message.chat.id, text=emoji.emojize(':worried: Я тебя не понял :(', use_aliases=True), reply_markup=keyboard)
             bot.register_next_step_handler(answer, process_command)
 
-def process_add_command(message):
-    user_token = get_token(message)
+def process_add_command(message, user_token):
     if user_token:
         text = message.text
         '''
@@ -184,6 +198,12 @@ def process_add_command(message):
         bot.register_next_step_handler(answer, process_add_command)
         answer_cache[message.chat.id] = answer.message_id
 
+def process_shop_command(message, user_token):
+    if user_token:
+        keyboard = get_shop_keyboard()
+        shop_storage[message.chat.id] = user_token
+        bot.send_message(message.chat.id, text=emoji.emojize('Что покупаем?', use_aliases=True), reply_markup=keyboard)
+
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     if call.message:
@@ -195,6 +215,21 @@ def callback_inline(call):
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(":credit_card: Укажите, сколько GT нужно начислить или введите 0 для отмены.", use_aliases=True))
                 bot.clear_step_handler(call.message)
                 bot.register_next_step_handler(call.message, process_money)
+            elif call.data.startswith("buy"):
+                item = call.data.split('_')[1]
+                user_token = shop_storage[call.message.chat.id]
+                if not user_token:
+                    raise Exception("no token")
+                is_admin = get_permissions_by_token(user_token)
+                keyboard = get_keyboard(is_admin)
+                shop_storage[call.message.chat.id] = None
+                if make_buy(user_token, item):
+                    answer = bot.send_message(call.message.chat.id, 'Платеж прошел, ожидайте доставку!',  reply_markup=keyboard)
+                else:
+                    answer = bot.send_message(call.message.chat.id, 'Недостаточно средств или товар закончился.',  reply_markup=keyboard)
+                bot.register_next_step_handler(answer, process_command)
+
+
             elif call.data == "yes":
                 comment = temp_storage[call.message.chat.id]['comment']
                 id = temp_storage[call.message.chat.id]['id']

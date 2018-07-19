@@ -1,9 +1,10 @@
 import requests, json
 from config import app_token, master_token
 
-DEBUG = False
+DEBUG = True
 
-def send_query(data, url = 'https://profile.goto.msk.ru/graphql'):
+
+def send_query(data, url='https://profile.goto.msk.ru/graphql'):
     try:
         headers = {
             'Content-Type': 'application/json',
@@ -15,9 +16,10 @@ def send_query(data, url = 'https://profile.goto.msk.ru/graphql'):
         answer = requests.post(url, data=data, headers=headers)
         if DEBUG:
             print("data returned: ", answer.text)
-        return  answer.json()
+        return answer.json()
     except:
         return None
+
 
 def get_token_by_telegram(name):
     data = '''
@@ -40,12 +42,13 @@ def get_balance_by_token(token):
             gotoCoins
           }
         }
-    '''  % token
+    ''' % token
     result = send_query(data)
     try:
         return result['data']['getUserInformation']['gotoCoins']
     except:
         return None
+
 
 def get_id_by_token(token):
     data = '''
@@ -54,12 +57,41 @@ def get_id_by_token(token):
             profileId
           }
         }
-    '''  % token
+    ''' % token
     result = send_query(data)
     try:
         return result['data']['getUserInformation']['profileId']
     except:
         return None
+
+
+def get_goods():
+    data = '''
+        {
+          getGoToShopItems {
+            title
+            price
+            id
+          }
+        }
+    '''
+    result = send_query(data)
+    try:
+        return result['data']['getGoToShopItems']
+    except:
+        return []
+
+def make_buy(token, item):
+    data = '''
+    {
+      buyGoToShopItem(token:"%s", itemId: "%s") 
+    }
+    ''' % (token, item)
+    result = send_query(data)
+    try:
+        return result['data']['buyGoToShopItem'] == True
+    except:
+        return False
 
 def get_name_by_id(id):
     data = '''
@@ -69,24 +101,27 @@ def get_name_by_id(id):
             lastName
           }
         }
-    '''  %id
+    ''' % id
     result = send_query(data)
     try:
-        return result['data']['getUserInformation']['firstName'] + " " +result['data']['getUserInformation']['lastName']
+        return result['data']['getUserInformation']['firstName'] + " " + result['data']['getUserInformation'][
+            'lastName']
     except:
         return None
+
 
 def submit_gotocoins(token, id, amount, comment):
     data = '''
         {
           newGoToCoinTransaction(token: "%s", comment: "%s", count: %s, profileId: "%s")
         }
-    '''  % (token, comment, amount, id)
+    ''' % (token, comment, amount, id)
     result = send_query(data)
     try:
         return result['data']['newGoToCoinTransaction'] == True
     except:
         return False
+
 
 def get_permissions_by_token(token):
     data = '''
@@ -95,12 +130,14 @@ def get_permissions_by_token(token):
             permissions
           }
         }
-    '''  % token
+    ''' % token
     result = send_query(data)
     try:
-        return result['data']['getUserInformation']['permissions'].lower() in ['администратор', 'преподаватель', 'организатор']
+        return result['data']['getUserInformation']['permissions'].lower() in ['администратор', 'преподаватель',
+                                                                               'организатор']
     except:
         return False
+
 
 def get_history_by_token(token):
     data = '''
@@ -117,17 +154,18 @@ def get_history_by_token(token):
             comment
         }
     }
-    '''  % token
+    ''' % token
     result = send_query(data)
     try:
         return result['data']['getGoToCoinTransactions']
     except:
         return []
 
+
 def get_students_by_token(token):
     data = '''
         {
-          getRelatedFormAnswers(token: "%s") {
+          getRelatedFormAnswers(token: "%s", eventId: "RXZlbnROb2RlOjE=")) {
             name
             user {
               profileId
@@ -137,12 +175,13 @@ def get_students_by_token(token):
             }
           }
         }
-    '''  % token
+    ''' % token
     result = send_query(data)
     try:
         return result['data']['getRelatedFormAnswers']
     except:
         return []
+
 
 if __name__ == "__main__":
     DEBUG = True
