@@ -5,6 +5,7 @@ import emoji
 from config import app_token, telegram_token, socks_string
 from profile_api import *
 import os.path
+import json
 
 
 telebot.apihelper.proxy = {'https': socks_string}
