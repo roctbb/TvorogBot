@@ -232,7 +232,7 @@ def callback_inline(call):
                     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                           text=emoji.emojize(':white_check_mark: Платеж прошел, ожидайте доставку!', use_aliases=True))
                 else:
-                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(':cry: Недостаточно средств или товар закончился.', use_aliases=True),  reply_markup=keyboard)
+                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(':cry: Недостаточно средств или товар закончился.', use_aliases=True))
                 answer = bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=keyboard)
                 bot.register_next_step_handler(answer, process_command)
             elif call.data.startswith("cancel"):

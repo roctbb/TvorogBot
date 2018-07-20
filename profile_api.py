@@ -1,7 +1,7 @@
 import requests, json
 from config import app_token, master_token
 
-DEBUG = False
+DEBUG = True
 
 
 def send_query(data, url='https://profile.goto.msk.ru/graphql'):
@@ -205,5 +205,5 @@ if __name__ == "__main__":
     print(get_history_by_token(token))
     print(get_permissions_by_token(token))
     '''
-    print(submit_gotocoins(master_token, 102, 101, 'test'))
+    print(submit_gotocoins(master_token, 102, -450, 'test'))
 
