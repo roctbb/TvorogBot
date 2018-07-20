@@ -165,7 +165,7 @@ def get_history_by_token(token):
 def get_students_by_token(token):
     data = '''
         {
-          getRelatedFormAnswers(token: "%s", eventId: "RXZlbnROb2RlOjE=") {
+          getRelatedFormAnswers(token: "%s", eventId: "RXZlbnROb2RlOjI=") {
             user {
               profileId
               firstName
