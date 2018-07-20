@@ -13,6 +13,10 @@ def send_query(data, url='https://profile.goto.msk.ru/graphql'):
         data = json.dumps({"query": data})
         if DEBUG:
             print("data sent: ", data)
+            try:
+                print(json.loads(data))
+            except:
+                pass
         answer = requests.post(url, data=data, headers=headers)
         if DEBUG:
             print("data returned: ", answer.text)
@@ -189,6 +193,7 @@ def get_students_by_token(token):
 if __name__ == "__main__":
     DEBUG = True
     token = get_token_by_telegram("roctbb")
+    print(token)
     '''
     print(get_balance_by_token(token))
     print(get_permissions_by_token(token))
@@ -198,5 +203,7 @@ if __name__ == "__main__":
 
     print(submit_gotocoins(master_token, 102, 100, 'test'))
     print(get_history_by_token(token))
-    '''
     print(get_permissions_by_token(token))
+    '''
+    print(submit_gotocoins(master_token, 102, 101, 'test'))
+
