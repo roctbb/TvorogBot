@@ -5,6 +5,7 @@ import emoji
 from config import app_token, telegram_token, socks_string
 from profile_api import *
 import os.path
+import json
 
 
 telebot.apihelper.proxy = {'https': socks_string}
@@ -231,7 +232,7 @@ def callback_inline(call):
                     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                           text=emoji.emojize(':white_check_mark: Платеж прошел, ожидайте доставку!', use_aliases=True))
                 else:
-                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(':cry: Недостаточно средств или товар закончился.', use_aliases=True),  reply_markup=keyboard)
+                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(':cry: Недостаточно средств или товар закончился.', use_aliases=True))
                 answer = bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=keyboard)
                 bot.register_next_step_handler(answer, process_command)
             elif call.data.startswith("cancel"):
@@ -254,15 +255,16 @@ def callback_inline(call):
                 is_admin = get_permissions_by_token(user_token)
                 keyboard = get_keyboard(is_admin)
 
-                submit_gotocoins(user_token, id, money, comment)
-
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(':thumbsup: GT начислены. Спасибо!', use_aliases=True))
-                try:
-                    student_id = find_telegram_by_id(id)
-                    if student_id:
-                        bot.send_message(student_id, emoji.emojize(':metal: Вам начислено {} GT за "{}".'.format(money, comment), use_aliases=True))
-                except:
-                    pass
+                if submit_gotocoins(user_token, id, money, comment):
+                    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=emoji.emojize(':thumbsup: GT начислены. Спасибо!', use_aliases=True))
+                    try:
+                        student_id = find_telegram_by_id(id)
+                        if student_id:
+                            bot.send_message(student_id, emoji.emojize(':metal: Вам начислено {} GT за "{}".'.format(money, comment), use_aliases=True))
+                    except:
+                        pass
+                else:
+                    raise Exception("transaction error")
                 answer = bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=keyboard)
                 temp_storage[call.message.chat.id]['comment'] = {}
                 bot.register_next_step_handler(answer, process_command)
@@ -279,7 +281,7 @@ def callback_inline(call):
                 raise Exception("unknown command")
         except Exception as e:
             print(e)
-            answer = bot.send_message(call.message.chat.id, text='Что-то пошло не так :(')
+            answer = bot.send_message(call.message.chat.id, text='Что-то пошло не так :(. Нажмите /start.')
             bot.register_next_step_handler(answer, process_command)
 
 while True:
