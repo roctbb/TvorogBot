@@ -83,7 +83,7 @@ def get_keyboard(is_admin = False):
         add_button = telebot.types.KeyboardButton(text="Начислить")
         keyboard.add(add_button)
     keyboard.add(balance_button)
-    # keyboard.add(shop_button)
+    keyboard.add(shop_button)
     return keyboard
 
 def get_add_keyboard(students):
